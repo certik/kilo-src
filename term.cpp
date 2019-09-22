@@ -241,7 +241,7 @@ int is_separator(int c) {
 }
 
 void editorUpdateSyntax(erow *row) {
-  row->hl = realloc(row->hl, row->rsize);
+  row->hl = (unsigned char*)realloc(row->hl, row->rsize);
   memset(row->hl, HL_NORMAL, row->rsize);
 
   if (E.syntax == NULL) return;
@@ -428,7 +428,7 @@ void editorUpdateRow(erow *row) {
     if (row->chars[j] == '\t') tabs++;
 
   free(row->render);
-  row->render = malloc(row->size + tabs*(KILO_TAB_STOP - 1) + 1);
+  row->render = (char*)malloc(row->size + tabs*(KILO_TAB_STOP - 1) + 1);
 
   int idx = 0;
   for (j = 0; j < row->size; j++) {
@@ -448,14 +448,14 @@ void editorUpdateRow(erow *row) {
 void editorInsertRow(int at, char *s, size_t len) {
   if (at < 0 || at > E.numrows) return;
 
-  E.row = realloc(E.row, sizeof(erow) * (E.numrows + 1));
+  E.row = (erow*)realloc(E.row, sizeof(erow) * (E.numrows + 1));
   memmove(&E.row[at + 1], &E.row[at], sizeof(erow) * (E.numrows - at));
   for (int j = at + 1; j <= E.numrows; j++) E.row[j].idx++;
 
   E.row[at].idx = at;
 
   E.row[at].size = len;
-  E.row[at].chars = malloc(len + 1);
+  E.row[at].chars = (char*)malloc(len + 1);
   memcpy(E.row[at].chars, s, len);
   E.row[at].chars[len] = '\0';
 
@@ -486,7 +486,7 @@ void editorDelRow(int at) {
 
 void editorRowInsertChar(erow *row, int at, int c) {
   if (at < 0 || at > row->size) at = row->size;
-  row->chars = realloc(row->chars, row->size + 2);
+  row->chars = (char*)realloc(row->chars, row->size + 2);
   memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
   row->size++;
   row->chars[at] = c;
@@ -495,7 +495,7 @@ void editorRowInsertChar(erow *row, int at, int c) {
 }
 
 void editorRowAppendString(erow *row, char *s, size_t len) {
-  row->chars = realloc(row->chars, row->size + len + 1);
+  row->chars = (char*)realloc(row->chars, row->size + len + 1);
   memcpy(&row->chars[row->size], s, len);
   row->size += len;
   row->chars[row->size] = '\0';
@@ -561,7 +561,7 @@ char *editorRowsToString(int *buflen) {
     totlen += E.row[j].size + 1;
   *buflen = totlen;
 
-  char *buf = malloc(totlen);
+  char *buf = (char*)malloc(totlen);
   char *p = buf;
   for (j = 0; j < E.numrows; j++) {
     memcpy(p, E.row[j].chars, E.row[j].size);
@@ -672,7 +672,7 @@ void editorFindCallback(char *query, int key) {
       E.rowoff = E.numrows;
 
       saved_hl_line = current;
-      saved_hl = malloc(row->rsize);
+      saved_hl = (char*)malloc(row->rsize);
       memcpy(saved_hl, row->hl, row->rsize);
       memset(&row->hl[match - row->render], HL_MATCH, strlen(query));
       break;
@@ -709,11 +709,11 @@ struct abuf {
 #define ABUF_INIT {NULL, 0}
 
 void abAppend(struct abuf *ab, const char *s, int len) {
-  char *new = realloc(ab->b, ab->len + len);
+  char *cnew = (char*)realloc(ab->b, ab->len + len);
 
-  if (new == NULL) return;
-  memcpy(&new[ab->len], s, len);
-  ab->b = new;
+  if (cnew == NULL) return;
+  memcpy(&cnew[ab->len], s, len);
+  ab->b = cnew;
   ab->len += len;
 }
 
@@ -873,7 +873,7 @@ void editorSetStatusMessage(const char *fmt, ...) {
 
 char *editorPrompt(char *prompt, void (*callback)(char *, int)) {
   size_t bufsize = 128;
-  char *buf = malloc(bufsize);
+  char *buf = (char*)malloc(bufsize);
 
   size_t buflen = 0;
   buf[0] = '\0';
@@ -899,7 +899,7 @@ char *editorPrompt(char *prompt, void (*callback)(char *, int)) {
     } else if (!iscntrl(c) && c < 128) {
       if (buflen == bufsize - 1) {
         bufsize *= 2;
-        buf = realloc(buf, bufsize);
+        buf = (char*)realloc(buf, bufsize);
       }
       buf[buflen++] = c;
       buf[buflen] = '\0';
