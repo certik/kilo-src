@@ -2,7 +2,7 @@
 
 #define _DEFAULT_SOURCE
 #define _BSD_SOURCE
-#define _GNU_SOURCE
+//#define _GNU_SOURCE
 
 #include <ctype.h>
 #include <errno.h>
@@ -55,12 +55,12 @@ enum editorHighlight {
 /*** data ***/
 
 struct editorSyntax {
-  char *filetype;
-  char **filematch;
-  char **keywords;
-  char *singleline_comment_start;
-  char *multiline_comment_start;
-  char *multiline_comment_end;
+  const char *filetype;
+  const char **filematch;
+  const char **keywords;
+  const char *singleline_comment_start;
+  const char *multiline_comment_start;
+  const char *multiline_comment_end;
   int flags;
 };
 
@@ -95,8 +95,8 @@ struct editorConfig E;
 
 /*** filetypes ***/
 
-char *C_HL_extensions[] = { ".c", ".h", ".cpp", NULL };
-char *C_HL_keywords[] = {
+const char *C_HL_extensions[] = { ".c", ".h", ".cpp", NULL };
+const char *C_HL_keywords[] = {
   "switch", "if", "while", "for", "break", "continue", "return", "else",
   "struct", "union", "typedef", "static", "enum", "class", "case",
 
@@ -120,7 +120,7 @@ struct editorSyntax HLDB[] = {
 
 void editorSetStatusMessage(const char *fmt, ...);
 void editorRefreshScreen();
-char *editorPrompt(char *prompt, void (*callback)(char *, int));
+char *editorPrompt(const char *prompt, void (*callback)(char *, int));
 
 /*** terminal ***/
 
@@ -246,11 +246,11 @@ void editorUpdateSyntax(erow *row) {
 
   if (E.syntax == NULL) return;
 
-  char **keywords = E.syntax->keywords;
+  const char **keywords = E.syntax->keywords;
 
-  char *scs = E.syntax->singleline_comment_start;
-  char *mcs = E.syntax->multiline_comment_start;
-  char *mce = E.syntax->multiline_comment_end;
+  const char *scs = E.syntax->singleline_comment_start;
+  const char *mcs = E.syntax->multiline_comment_start;
+  const char *mce = E.syntax->multiline_comment_end;
 
   int scs_len = scs ? strlen(scs) : 0;
   int mcs_len = mcs ? strlen(mcs) : 0;
@@ -263,7 +263,7 @@ void editorUpdateSyntax(erow *row) {
   int i = 0;
   while (i < row->rsize) {
     char c = row->render[i];
-    unsigned char prev_hl = (i > 0) ? row->hl[i - 1] : HL_NORMAL;
+    unsigned char prev_hl = (i > 0) ? row->hl[i - 1] : (char)HL_NORMAL;
 
     if (scs_len && !in_string && !in_comment) {
       if (!strncmp(&row->render[i], scs, scs_len)) {
@@ -445,7 +445,7 @@ void editorUpdateRow(erow *row) {
   editorUpdateSyntax(row);
 }
 
-void editorInsertRow(int at, char *s, size_t len) {
+void editorInsertRow(int at, const char *s, size_t len) {
   if (at < 0 || at > E.numrows) return;
 
   E.row = (erow*)realloc(E.row, sizeof(erow) * (E.numrows + 1));
@@ -871,7 +871,7 @@ void editorSetStatusMessage(const char *fmt, ...) {
 
 /*** input ***/
 
-char *editorPrompt(char *prompt, void (*callback)(char *, int)) {
+char *editorPrompt(const char *prompt, void (*callback)(char *, int)) {
   size_t bufsize = 128;
   char *buf = (char*)malloc(bufsize);
 
