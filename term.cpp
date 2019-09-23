@@ -163,8 +163,7 @@ void die(const char *s) {
   write(STDOUT_FILENO, "\x1b[2J", 4);
   write(STDOUT_FILENO, "\x1b[H", 3);
 
-  perror(s);
-  exit(1);
+  throw std::runtime_error(s);
 }
 
 void disableRawMode() {
@@ -972,7 +971,7 @@ void editorMoveCursor(int key) {
   }
 }
 
-void editorProcessKeypress() {
+bool editorProcessKeypress() {
   static int quit_times = KILO_QUIT_TIMES;
 
   int c = editorReadKey();
@@ -987,11 +986,11 @@ void editorProcessKeypress() {
         editorSetStatusMessage("WARNING!!! File has unsaved changes. "
           "Press Ctrl-Q %d more times to quit.", quit_times);
         quit_times--;
-        return;
+        return true;
       }
       write(STDOUT_FILENO, "\x1b[2J", 4);
       write(STDOUT_FILENO, "\x1b[H", 3);
-      exit(0);
+      return false;
       break;
 
     case CTRL_KEY('s'):
@@ -1051,6 +1050,7 @@ void editorProcessKeypress() {
   }
 
   quit_times = KILO_QUIT_TIMES;
+  return true;
 }
 
 /*** init ***/
@@ -1083,9 +1083,9 @@ int main(int argc, char *argv[]) {
   editorSetStatusMessage(
     "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 
-  while (1) {
+  editorRefreshScreen();
+  while (editorProcessKeypress()) {
     editorRefreshScreen();
-    editorProcessKeypress();
   }
 
   return 0;
