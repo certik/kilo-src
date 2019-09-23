@@ -117,37 +117,6 @@ void die(const char *s) {
   throw std::runtime_error(s);
 }
 
-int getCursorPosition(const Terminal &term, int *rows, int *cols) {
-  char buf[32];
-  unsigned int i = 0;
-
-  term.write(cursor_position_report());
-
-  while (i < sizeof(buf) - 1) {
-    while (!term.read_raw(&buf[i])) {};
-    if (buf[i] == 'R') break;
-    i++;
-  }
-  buf[i] = '\0';
-
-  if (buf[0] != '\x1b' || buf[1] != '[') return -1;
-  if (sscanf(&buf[2], "%d;%d", rows, cols) != 2) return -1;
-
-  return 0;
-}
-
-int getWindowSize(const Terminal &term, int *rows, int *cols) {
-  struct winsize ws;
-
-  if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
-    term.write(move_cursor_right(999) + move_cursor_down(999));
-    return getCursorPosition(term, rows, cols);
-  } else {
-    *cols = ws.ws_col;
-    *rows = ws.ws_row;
-    return 0;
-  }
-}
 
 /*** syntax highlighting ***/
 
@@ -930,7 +899,7 @@ void initEditor(const Terminal &term) {
   E.statusmsg_time = 0;
   E.syntax = NULL;
 
-  if (getWindowSize(term, &E.screenrows, &E.screencols) == -1) die("getWindowSize");
+  term.get_term_size(E.screenrows, E.screencols);
   E.screenrows -= 2;
 }
 
