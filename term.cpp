@@ -29,9 +29,9 @@
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 
-enum editorKey {
+enum Key {
   BACKSPACE = 1000,
-  ENTER_KEY,
+  ENTER,
   ARROW_LEFT,
   ARROW_RIGHT,
   ARROW_UP,
@@ -148,7 +148,7 @@ public:
         return ESC_KEY;
       } else {
         switch (c) {
-          case '\r': return ENTER_KEY;
+          case '\r': return Key::ENTER;
           case 127: return BACKSPACE;
         }
         return c;
@@ -688,7 +688,7 @@ void editorFindCallback(char *query, int key) {
     saved_hl = NULL;
   }
 
-  if (key == ENTER_KEY || key == ESC_KEY) {
+  if (key == Key::ENTER || key == ESC_KEY) {
     last_match = -1;
     direction = 1;
     return;
@@ -936,7 +936,7 @@ char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(ch
       if (callback) callback(buf, c);
       free(buf);
       return NULL;
-    } else if (c == ENTER_KEY) {
+    } else if (c == Key::ENTER) {
       if (buflen != 0) {
         editorSetStatusMessage("");
         if (callback) callback(buf, c);
@@ -1000,7 +1000,7 @@ bool editorProcessKeypress(const Terminal &term) {
   int c = term.read_key();
 
   switch (c) {
-    case ENTER_KEY:
+    case Key::ENTER:
       editorInsertNewline();
       break;
 
