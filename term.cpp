@@ -28,6 +28,20 @@
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 
+
+enum editorKey {
+  BACKSPACE = 127,
+  ARROW_LEFT = 1000,
+  ARROW_RIGHT,
+  ARROW_UP,
+  ARROW_DOWN,
+  DEL_KEY,
+  HOME_KEY,
+  END_KEY,
+  PAGE_UP,
+  PAGE_DOWN
+};
+
 class Terminal {
 private:
     struct termios orig_termios;
@@ -53,6 +67,7 @@ public:
         write("\0337"); // save current cursor position
         write("\033[?47h"); // save screen
     }
+
     ~Terminal() {
         write("\033[?47l"); // restore screen
         write("\0338"); // restore current cursor position
@@ -62,34 +77,72 @@ public:
             exit(1);
         }
     }
+
     void write(const std::string &s) const {
         if (::write(STDOUT_FILENO, s.c_str(), s.size()) != (int) s.size()) {
             throw std::runtime_error("write() failed");
         };
     }
+
     // Returns true if a character is read, otherwise immediately returns false
-    bool read(char *s) const {
-        int nread = ::read(STDIN_FILENO, s, 1);
+    bool read_raw(char *s) const {
+        int nread = read(STDIN_FILENO, s, 1);
         if (nread == -1 && errno != EAGAIN) {
             throw std::runtime_error("read() failed");
         }
         return (nread == 1);
     }
+
+    // Waits for a key press, translates escape codes
+    int read_key() const {
+      char c;
+      while (!read_raw(&c)) {}
+
+      if (c == '\x1b') {
+        char seq[3];
+
+        if (!read_raw(&seq[0])) return '\x1b';
+        if (!read_raw(&seq[1])) return '\x1b';
+
+        if (seq[0] == '[') {
+          if (seq[1] >= '0' && seq[1] <= '9') {
+            if (!read_raw(&seq[2])) return '\x1b';
+            if (seq[2] == '~') {
+              switch (seq[1]) {
+                case '1': return HOME_KEY;
+                case '3': return DEL_KEY;
+                case '4': return END_KEY;
+                case '5': return PAGE_UP;
+                case '6': return PAGE_DOWN;
+                case '7': return HOME_KEY;
+                case '8': return END_KEY;
+              }
+            }
+          } else {
+            switch (seq[1]) {
+              case 'A': return ARROW_UP;
+              case 'B': return ARROW_DOWN;
+              case 'C': return ARROW_RIGHT;
+              case 'D': return ARROW_LEFT;
+              case 'H': return HOME_KEY;
+              case 'F': return END_KEY;
+            }
+          }
+        } else if (seq[0] == 'O') {
+          switch (seq[1]) {
+            case 'H': return HOME_KEY;
+            case 'F': return END_KEY;
+          }
+        }
+
+        return '\x1b';
+      } else {
+        return c;
+      }
+    }
+
 };
 
-
-enum editorKey {
-  BACKSPACE = 127,
-  ARROW_LEFT = 1000,
-  ARROW_RIGHT,
-  ARROW_UP,
-  ARROW_DOWN,
-  DEL_KEY,
-  HOME_KEY,
-  END_KEY,
-  PAGE_UP,
-  PAGE_DOWN
-};
 
 enum editorHighlight {
   HL_NORMAL = 0,
@@ -181,53 +234,6 @@ void die(const char *s) {
   throw std::runtime_error(s);
 }
 
-int editorReadKey(const Terminal &term) {
-  char c;
-  while (!term.read(&c)) {}
-
-  if (c == '\x1b') {
-    char seq[3];
-
-    if (!term.read(&seq[0])) return '\x1b';
-    if (!term.read(&seq[1])) return '\x1b';
-
-    if (seq[0] == '[') {
-      if (seq[1] >= '0' && seq[1] <= '9') {
-        if (!term.read(&seq[2])) return '\x1b';
-        if (seq[2] == '~') {
-          switch (seq[1]) {
-            case '1': return HOME_KEY;
-            case '3': return DEL_KEY;
-            case '4': return END_KEY;
-            case '5': return PAGE_UP;
-            case '6': return PAGE_DOWN;
-            case '7': return HOME_KEY;
-            case '8': return END_KEY;
-          }
-        }
-      } else {
-        switch (seq[1]) {
-          case 'A': return ARROW_UP;
-          case 'B': return ARROW_DOWN;
-          case 'C': return ARROW_RIGHT;
-          case 'D': return ARROW_LEFT;
-          case 'H': return HOME_KEY;
-          case 'F': return END_KEY;
-        }
-      }
-    } else if (seq[0] == 'O') {
-      switch (seq[1]) {
-        case 'H': return HOME_KEY;
-        case 'F': return END_KEY;
-      }
-    }
-
-    return '\x1b';
-  } else {
-    return c;
-  }
-}
-
 int getCursorPosition(const Terminal &term, int *rows, int *cols) {
   char buf[32];
   unsigned int i = 0;
@@ -235,7 +241,7 @@ int getCursorPosition(const Terminal &term, int *rows, int *cols) {
   term.write("\x1b[6n");
 
   while (i < sizeof(buf) - 1) {
-    if (!term.read(&buf[i])) break;
+    if (!term.read_raw(&buf[i])) break;
     if (buf[i] == 'R') break;
     i++;
   }
@@ -908,7 +914,7 @@ char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(ch
     editorSetStatusMessage(prompt, buf);
     editorRefreshScreen(term);
 
-    int c = editorReadKey(term);
+    int c = term.read_key();
     if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE) {
       if (buflen != 0) buf[--buflen] = '\0';
     } else if (c == '\x1b') {
@@ -977,7 +983,7 @@ void editorMoveCursor(int key) {
 bool editorProcessKeypress(const Terminal &term) {
   static int quit_times = KILO_QUIT_TIMES;
 
-  int c = editorReadKey(term);
+  int c = term.read_key();
 
   switch (c) {
     case '\r':
