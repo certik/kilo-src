@@ -733,7 +733,7 @@ void editorRefreshScreen(const Terminal &term) {
   std::string ab;
   ab.reserve(16*1024);
 
-  ab.append("\x1b[?25l");
+  ab.append(cursor_off());
   ab.append("\x1b[H");
 
   editorDrawRows(ab);
@@ -745,7 +745,7 @@ void editorRefreshScreen(const Terminal &term) {
                                             (E.rx - E.coloff) + 1);
   ab.append(std::string(buf, strlen(buf)));
 
-  ab.append("\x1b[?25h");
+  ab.append(cursor_on());
 
   term.write(ab);
 }

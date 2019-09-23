@@ -74,6 +74,16 @@ std::string color(T const value)
     return "\033[" + std::to_string(static_cast<int>(value)) + "m";
 }
 
+std::string cursor_off()
+{
+    return "\x1b[?25l";
+}
+
+std::string cursor_on()
+{
+    return "\x1b[?25h";
+}
+
 
 enum Key {
   BACKSPACE = 1000,
