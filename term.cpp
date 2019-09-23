@@ -124,7 +124,7 @@ int getCursorPosition(const Terminal &term, int *rows, int *cols) {
   term.write(cursor_position_report());
 
   while (i < sizeof(buf) - 1) {
-    if (!term.read_raw(&buf[i])) break;
+    while (!term.read_raw(&buf[i])) {};
     if (buf[i] == 'R') break;
     i++;
   }
