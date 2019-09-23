@@ -49,17 +49,21 @@ public:
         if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1) {
             throw std::runtime_error("tcsetattr() failed");
         }
+
+        out("\0337"); // save current cursor position
+        out("\033[?47h"); // save screen
     }
     ~Terminal() {
-        // Clear the screen
-        write(STDOUT_FILENO, "\x1b[2J", 4);
-        // Position cursor to (1,1)
-        write(STDOUT_FILENO, "\x1b[H", 3);
+        out("\033[?47l"); // restore screen
+        out("\0338"); // restore current cursor position
         if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
             std::cout << "tcsetattr() failed in destructor, terminating."
                 << std::endl;
             exit(1);
         }
+    }
+    void out(const std::string &s) {
+        write(STDIN_FILENO, s.c_str(), s.size());
     }
 };
 
