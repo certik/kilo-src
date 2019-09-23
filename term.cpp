@@ -270,16 +270,16 @@ void editorUpdateSyntax(erow *row) {
     editorUpdateSyntax(&E.row[row->idx + 1]);
 }
 
-int editorSyntaxToColor(int hl) {
+fg editorSyntaxToColor(int hl) {
   switch (hl) {
     case HL_COMMENT:
-    case HL_MLCOMMENT: return 36;
-    case HL_KEYWORD1: return 33;
-    case HL_KEYWORD2: return 32;
-    case HL_STRING: return 35;
-    case HL_NUMBER: return 31;
-    case HL_MATCH: return 34;
-    default: return 37;
+    case HL_MLCOMMENT: return fg::cyan;
+    case HL_KEYWORD1: return fg::yellow;
+    case HL_KEYWORD2: return fg::green;
+    case HL_STRING: return fg::magenta;
+    case HL_NUMBER: return fg::red;
+    case HL_MATCH: return fg::blue;
+    default: return fg::gray;
   }
 }
 
@@ -662,7 +662,7 @@ void editorDrawRows(std::string &ab) {
       if (len > E.screencols) len = E.screencols;
       char *c = &E.row[filerow].render[E.coloff];
       unsigned char *hl = &E.row[filerow].hl[E.coloff];
-      int current_color = -1;
+      fg current_color = fg::black; // black is not used in editorSyntaxToColor
       int j;
       for (j = 0; j < len; j++) {
         if (iscntrl(c[j])) {
@@ -670,17 +670,17 @@ void editorDrawRows(std::string &ab) {
           ab.append(color(style::reversed));
           ab.append(std::string(&sym,1));
           ab.append(color(style::reset));
-          if (current_color != -1) {
+          if (current_color != fg::black) {
             ab.append(color(current_color));
           }
         } else if (hl[j] == HL_NORMAL) {
-          if (current_color != -1) {
+          if (current_color != fg::black) {
             ab.append(color(fg::reset));
-            current_color = -1;
+            current_color = fg::black;
           }
           ab.append(std::string(&c[j], 1));
         } else {
-          int color = editorSyntaxToColor(hl[j]);
+          fg color = editorSyntaxToColor(hl[j]);
           if (color != current_color) {
             current_color = color;
             ab.append(::color(color));
