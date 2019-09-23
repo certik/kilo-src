@@ -84,6 +84,11 @@ std::string cursor_on()
     return "\x1b[?25h";
 }
 
+std::string move_cursor(int row, int col)
+{
+    return "\x1b[" + std::to_string(row) + ";" + std::to_string(col) + "H";
+}
+
 
 enum Key {
   BACKSPACE = 1000,

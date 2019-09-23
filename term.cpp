@@ -734,16 +734,13 @@ void editorRefreshScreen(const Terminal &term) {
   ab.reserve(16*1024);
 
   ab.append(cursor_off());
-  ab.append("\x1b[H");
+  ab.append(move_cursor(1, 1));
 
   editorDrawRows(ab);
   editorDrawStatusBar(ab);
   editorDrawMessageBar(ab);
 
-  char buf[32];
-  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1,
-                                            (E.rx - E.coloff) + 1);
-  ab.append(std::string(buf, strlen(buf)));
+  ab.append(move_cursor((E.cy - E.rowoff) + 1, (E.rx - E.coloff) + 1));
 
   ab.append(cursor_on());
 
