@@ -107,8 +107,6 @@ struct editorSyntax HLDB[] = {
 
 /*** prototypes ***/
 
-void editorSetStatusMessage(const char *fmt, ...);
-void editorRefreshScreen();
 char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(char *, int));
 
 
@@ -472,6 +470,14 @@ void editorOpen(char *filename) {
     E.dirty = 0;
 }
 
+void editorSetStatusMessage(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(E.statusmsg, sizeof(E.statusmsg), fmt, ap);
+  va_end(ap);
+  E.statusmsg_time = time(NULL);
+}
+
 void editorSave(const Terminal &term) {
   if (E.filename == NULL) {
     E.filename = editorPrompt(term, "Save as: %s (ESC to cancel)", NULL);
@@ -706,14 +712,6 @@ void editorRefreshScreen(const Terminal &term) {
   ab.append(cursor_on());
 
   term.write(ab);
-}
-
-void editorSetStatusMessage(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  vsnprintf(E.statusmsg, sizeof(E.statusmsg), fmt, ap);
-  va_end(ap);
-  E.statusmsg_time = time(NULL);
 }
 
 /*** input ***/
