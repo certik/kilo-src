@@ -245,9 +245,28 @@ public:
       }
     }
 
-    void get_term_size(int &rows, int &cols) const {
+    void get_cursor_position(int &rows, int &cols) const {
         char buf[32];
         unsigned int i = 0;
+        write(cursor_position_report());
+        while (i < sizeof(buf) - 1) {
+            while (!read_raw(&buf[i])) {};
+            if (buf[i] == 'R') break;
+            i++;
+        }
+        buf[i] = '\0';
+        if (i < 7) {
+            throw std::runtime_error("get_cursor_position(): too short response");
+        }
+        if (buf[0] != '\x1b' || buf[1] != '[') {
+            throw std::runtime_error("get_cursor_position(): Invalid response");
+        }
+        if (sscanf(&buf[2], "%d;%d", &rows, &cols) != 2) {
+            throw std::runtime_error("get_cursor_position(): Invalid response");
+        }
+    }
+
+    void get_term_size(int &rows, int &cols) const {
         struct CursorOff {
             const Terminal &term;
             CursorOff(const Terminal &term) : term{term} {
@@ -258,23 +277,8 @@ public:
             }
         };
         CursorOff cursor_off(*this);
-        write(move_cursor_right(999) + move_cursor_down(999)
-                + cursor_position_report());
-        while (i < sizeof(buf) - 1) {
-            while (!read_raw(&buf[i])) {};
-            if (buf[i] == 'R') break;
-            i++;
-        }
-        buf[i] = '\0';
-        if (i < 7) {
-            throw std::runtime_error("get_term_size(): too short response");
-        }
-        if (buf[0] != '\x1b' || buf[1] != '[') {
-            throw std::runtime_error("get_term_size(): Invalid response");
-        }
-        if (sscanf(&buf[2], "%d;%d", &rows, &cols) != 2) {
-            throw std::runtime_error("get_term_size(): Invalid response");
-        }
+        write(move_cursor_right(999) + move_cursor_down(999));
+        get_cursor_position(rows, cols);
     }
 };
 
