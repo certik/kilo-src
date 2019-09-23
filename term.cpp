@@ -51,6 +51,10 @@ public:
         }
     }
     ~Terminal() {
+        // Clear the screen
+        write(STDOUT_FILENO, "\x1b[2J", 4);
+        // Position cursor to (1,1)
+        write(STDOUT_FILENO, "\x1b[H", 3);
         if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
             std::cout << "tcsetattr() failed in destructor, terminating."
                 << std::endl;
@@ -159,8 +163,6 @@ char *editorPrompt(const char *prompt, void (*callback)(char *, int));
 /*** terminal ***/
 
 void die(const char *s) {
-  write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 3);
 
   throw std::runtime_error(s);
 }
@@ -978,8 +980,6 @@ bool editorProcessKeypress() {
         quit_times--;
         return true;
       }
-      write(STDOUT_FILENO, "\x1b[2J", 4);
-      write(STDOUT_FILENO, "\x1b[H", 3);
       return false;
       break;
 
