@@ -96,8 +96,16 @@ public:
 
     // Waits for a key press, translates escape codes
     int read_key() const {
+        int key;
+        while ((key = read_key0()) == 0) {}
+        return key;
+    }
+
+    // If there was a key press, returns the translated key from escape codes,
+    // otherwise returns 0.
+    int read_key0() const {
       char c;
-      while (!read_raw(&c)) {}
+      if (!read_raw(&c)) return 0;
 
       if (c == '\x1b') {
         char seq[3];
