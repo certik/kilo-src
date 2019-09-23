@@ -67,12 +67,13 @@ public:
             throw std::runtime_error("write() failed");
         };
     }
-    int read(char *s) const {
+    // Returns true if a character is read, otherwise immediately returns false
+    bool read(char *s) const {
         int nread = ::read(STDIN_FILENO, s, 1);
         if (nread == -1 && errno != EAGAIN) {
             throw std::runtime_error("read() failed");
         }
-        return nread;
+        return (nread == 1);
     }
 };
 
@@ -182,17 +183,17 @@ void die(const char *s) {
 
 int editorReadKey(const Terminal &term) {
   char c;
-  while (term.read(&c) != 1) {}
+  while (!term.read(&c)) {}
 
   if (c == '\x1b') {
     char seq[3];
 
-    if (term.read(&seq[0]) != 1) return '\x1b';
-    if (term.read(&seq[1]) != 1) return '\x1b';
+    if (!term.read(&seq[0])) return '\x1b';
+    if (!term.read(&seq[1])) return '\x1b';
 
     if (seq[0] == '[') {
       if (seq[1] >= '0' && seq[1] <= '9') {
-        if (term.read(&seq[2]) != 1) return '\x1b';
+        if (!term.read(&seq[2])) return '\x1b';
         if (seq[2] == '~') {
           switch (seq[1]) {
             case '1': return HOME_KEY;
@@ -234,7 +235,7 @@ int getCursorPosition(const Terminal &term, int *rows, int *cols) {
   term.write("\x1b[6n");
 
   while (i < sizeof(buf) - 1) {
-    if (term.read(&buf[i]) != 1) break;
+    if (!term.read(&buf[i])) break;
     if (buf[i] == 'R') break;
     i++;
   }
