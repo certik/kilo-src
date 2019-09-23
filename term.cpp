@@ -5,6 +5,7 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <memory>
 
 #include <ctype.h>
 #include <errno.h>
@@ -26,6 +27,38 @@
 #define KILO_QUIT_TIMES 3
 
 #define CTRL_KEY(k) ((k) & 0x1f)
+
+class Terminal {
+private:
+    struct termios orig_termios;
+public:
+    Terminal() {
+        if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
+            throw std::runtime_error("tcgetattr() failed");
+        }
+
+        // Put terminal in raw mode
+        struct termios raw = orig_termios;
+        raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+        raw.c_oflag &= ~(OPOST);
+        raw.c_cflag |= (CS8);
+        raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+        raw.c_cc[VMIN] = 0;
+        raw.c_cc[VTIME] = 0;
+
+        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1) {
+            throw std::runtime_error("tcsetattr() failed");
+        }
+    }
+    ~Terminal() {
+        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
+            std::cout << "tcsetattr() failed in destructor, terminating."
+                << std::endl;
+            exit(1);
+        }
+    }
+};
+
 
 enum editorKey {
   BACKSPACE = 127,
@@ -90,7 +123,7 @@ struct editorConfig {
   char statusmsg[80];
   time_t statusmsg_time;
   struct editorSyntax *syntax;
-  struct termios orig_termios;
+  std::unique_ptr<Terminal> term;
 };
 
 struct editorConfig E;
@@ -134,53 +167,13 @@ void die(const char *s) {
   exit(1);
 }
 
-class Terminal {
-private:
-    struct termios orig_termios;
-public:
-    Terminal() {
-        if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
-            throw std::runtime_error("tcgetattr() failed");
-        }
-
-        struct termios raw = orig_termios;
-        raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-        raw.c_oflag &= ~(OPOST);
-        raw.c_cflag |= (CS8);
-        raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-        raw.c_cc[VMIN] = 0;
-        raw.c_cc[VTIME] = 0;
-
-        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1) {
-            throw std::runtime_error("tcsetattr() failed");
-        }
-    }
-    ~Terminal() {
-        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
-            std::cout << "tcsetattr() failed, terminating." << std::endl;
-            exit(1);
-        }
-    }
-};
-
 void disableRawMode() {
-  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1)
-    die("tcsetattr");
+  E.term.reset();
 }
 
 void enableRawMode() {
-  if (tcgetattr(STDIN_FILENO, &E.orig_termios) == -1) die("tcgetattr");
+  E.term = std::make_unique<Terminal>();
   atexit(disableRawMode);
-
-  struct termios raw = E.orig_termios;
-  raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-  raw.c_oflag &= ~(OPOST);
-  raw.c_cflag |= (CS8);
-  raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-  raw.c_cc[VMIN] = 0;
-  raw.c_cc[VTIME] = 0;
-
-  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1) die("tcsetattr");
 }
 
 int editorReadKey() {
