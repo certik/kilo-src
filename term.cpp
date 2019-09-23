@@ -50,22 +50,25 @@ public:
             throw std::runtime_error("tcsetattr() failed");
         }
 
-        out("\0337"); // save current cursor position
-        out("\033[?47h"); // save screen
+        write("\0337"); // save current cursor position
+        write("\033[?47h"); // save screen
     }
     ~Terminal() {
-        out("\033[?47l"); // restore screen
-        out("\0338"); // restore current cursor position
+        write("\033[?47l"); // restore screen
+        write("\0338"); // restore current cursor position
         if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
             std::cout << "tcsetattr() failed in destructor, terminating."
                 << std::endl;
             exit(1);
         }
     }
-    void out(const std::string &s) {
-        if (write(STDOUT_FILENO, s.c_str(), s.size()) != (int) s.size()) {
+    void write(const std::string &s) const {
+        if (::write(STDOUT_FILENO, s.c_str(), s.size()) != (int) s.size()) {
             throw std::runtime_error("write() failed");
         };
+    }
+    int read(char *s) const {
+        return ::read(STDIN_FILENO, s, 1);
     }
 };
 
@@ -164,7 +167,7 @@ struct editorSyntax HLDB[] = {
 
 void editorSetStatusMessage(const char *fmt, ...);
 void editorRefreshScreen();
-char *editorPrompt(const char *prompt, void (*callback)(char *, int));
+char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(char *, int));
 
 /*** terminal ***/
 
@@ -173,22 +176,22 @@ void die(const char *s) {
   throw std::runtime_error(s);
 }
 
-int editorReadKey() {
+int editorReadKey(const Terminal &term) {
   int nread;
   char c;
-  while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
+  while ((nread = term.read(&c)) != 1) {
     if (nread == -1 && errno != EAGAIN) die("read");
   }
 
   if (c == '\x1b') {
     char seq[3];
 
-    if (read(STDIN_FILENO, &seq[0], 1) != 1) return '\x1b';
-    if (read(STDIN_FILENO, &seq[1], 1) != 1) return '\x1b';
+    if (term.read(&seq[0]) != 1) return '\x1b';
+    if (term.read(&seq[1]) != 1) return '\x1b';
 
     if (seq[0] == '[') {
       if (seq[1] >= '0' && seq[1] <= '9') {
-        if (read(STDIN_FILENO, &seq[2], 1) != 1) return '\x1b';
+        if (term.read(&seq[2]) != 1) return '\x1b';
         if (seq[2] == '~') {
           switch (seq[1]) {
             case '1': return HOME_KEY;
@@ -223,14 +226,14 @@ int editorReadKey() {
   }
 }
 
-int getCursorPosition(int *rows, int *cols) {
+int getCursorPosition(const Terminal &term, int *rows, int *cols) {
   char buf[32];
   unsigned int i = 0;
 
   if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4) return -1;
 
   while (i < sizeof(buf) - 1) {
-    if (read(STDIN_FILENO, &buf[i], 1) != 1) break;
+    if (term.read(&buf[i]) != 1) break;
     if (buf[i] == 'R') break;
     i++;
   }
@@ -242,12 +245,12 @@ int getCursorPosition(int *rows, int *cols) {
   return 0;
 }
 
-int getWindowSize(int *rows, int *cols) {
+int getWindowSize(const Terminal &term, int *rows, int *cols) {
   struct winsize ws;
 
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
     if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12) return -1;
-    return getCursorPosition(rows, cols);
+    return getCursorPosition(term, rows, cols);
   } else {
     *cols = ws.ws_col;
     *rows = ws.ws_row;
@@ -617,9 +620,9 @@ void editorOpen(char *filename) {
   E.dirty = 0;
 }
 
-void editorSave() {
+void editorSave(const Terminal &term) {
   if (E.filename == NULL) {
-    E.filename = editorPrompt("Save as: %s (ESC to cancel)", NULL);
+    E.filename = editorPrompt(term, "Save as: %s (ESC to cancel)", NULL);
     if (E.filename == NULL) {
       editorSetStatusMessage("Save aborted");
       return;
@@ -701,13 +704,13 @@ void editorFindCallback(char *query, int key) {
   }
 }
 
-void editorFind() {
+void editorFind(const Terminal &term) {
   int saved_cx = E.cx;
   int saved_cy = E.cy;
   int saved_coloff = E.coloff;
   int saved_rowoff = E.rowoff;
 
-  char *query = editorPrompt("Search: %s (Use ESC/Arrows/Enter)",
+  char *query = editorPrompt(term, "Search: %s (Use ESC/Arrows/Enter)",
                              editorFindCallback);
 
   if (query) {
@@ -892,7 +895,7 @@ void editorSetStatusMessage(const char *fmt, ...) {
 
 /*** input ***/
 
-char *editorPrompt(const char *prompt, void (*callback)(char *, int)) {
+char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(char *, int)) {
   size_t bufsize = 128;
   char *buf = (char*)malloc(bufsize);
 
@@ -903,7 +906,7 @@ char *editorPrompt(const char *prompt, void (*callback)(char *, int)) {
     editorSetStatusMessage(prompt, buf);
     editorRefreshScreen();
 
-    int c = editorReadKey();
+    int c = editorReadKey(term);
     if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE) {
       if (buflen != 0) buf[--buflen] = '\0';
     } else if (c == '\x1b') {
@@ -969,10 +972,10 @@ void editorMoveCursor(int key) {
   }
 }
 
-bool editorProcessKeypress() {
+bool editorProcessKeypress(const Terminal &term) {
   static int quit_times = KILO_QUIT_TIMES;
 
-  int c = editorReadKey();
+  int c = editorReadKey(term);
 
   switch (c) {
     case '\r':
@@ -990,7 +993,7 @@ bool editorProcessKeypress() {
       break;
 
     case CTRL_KEY('s'):
-      editorSave();
+      editorSave(term);
       break;
 
     case HOME_KEY:
@@ -1003,7 +1006,7 @@ bool editorProcessKeypress() {
       break;
 
     case CTRL_KEY('f'):
-      editorFind();
+      editorFind(term);
       break;
 
     case BACKSPACE:
@@ -1051,7 +1054,7 @@ bool editorProcessKeypress() {
 
 /*** init ***/
 
-void initEditor() {
+void initEditor(const Terminal &term) {
   E.cx = 0;
   E.cy = 0;
   E.rx = 0;
@@ -1065,13 +1068,13 @@ void initEditor() {
   E.statusmsg_time = 0;
   E.syntax = NULL;
 
-  if (getWindowSize(&E.screenrows, &E.screencols) == -1) die("getWindowSize");
+  if (getWindowSize(term, &E.screenrows, &E.screencols) == -1) die("getWindowSize");
   E.screenrows -= 2;
 }
 
 int main(int argc, char *argv[]) {
   Terminal term;
-  initEditor();
+  initEditor(term);
   if (argc >= 2) {
     editorOpen(argv[1]);
   }
@@ -1080,7 +1083,7 @@ int main(int argc, char *argv[]) {
     "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 
   editorRefreshScreen();
-  while (editorProcessKeypress()) {
+  while (editorProcessKeypress(term)) {
     editorRefreshScreen();
   }
 
