@@ -123,7 +123,6 @@ struct editorConfig {
   char statusmsg[80];
   time_t statusmsg_time;
   struct editorSyntax *syntax;
-  std::unique_ptr<Terminal> term;
 };
 
 struct editorConfig E;
@@ -164,15 +163,6 @@ void die(const char *s) {
   write(STDOUT_FILENO, "\x1b[H", 3);
 
   throw std::runtime_error(s);
-}
-
-void disableRawMode() {
-  E.term.reset();
-}
-
-void enableRawMode() {
-  E.term = std::make_unique<Terminal>();
-  atexit(disableRawMode);
 }
 
 int editorReadKey() {
@@ -1074,7 +1064,7 @@ void initEditor() {
 }
 
 int main(int argc, char *argv[]) {
-  enableRawMode();
+  Terminal term;
   initEditor();
   if (argc >= 2) {
     editorOpen(argv[1]);
