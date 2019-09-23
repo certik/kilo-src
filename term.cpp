@@ -632,6 +632,10 @@ void abAppend(struct abuf *ab, const char *s, int len) {
   ab->len += len;
 }
 
+void abAppend(struct abuf *ab, const std::string &s) {
+    abAppend(ab, s.c_str(), s.size());
+}
+
 void abFree(struct abuf *ab) {
   free(ab->b);
 }
@@ -689,17 +693,18 @@ void editorDrawRows(struct abuf *ab) {
       for (j = 0; j < len; j++) {
         if (iscntrl(c[j])) {
           char sym = (c[j] <= 26) ? '@' + c[j] : '?';
-          abAppend(ab, "\x1b[7m", 4);
+          abAppend(ab, color(style::reversed));
           abAppend(ab, &sym, 1);
-          abAppend(ab, "\x1b[m", 3);
+          abAppend(ab, color(style::reset));
           if (current_color != -1) {
             char buf[16];
+            // FIXME:
             int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", current_color);
             abAppend(ab, buf, clen);
           }
         } else if (hl[j] == HL_NORMAL) {
           if (current_color != -1) {
-            abAppend(ab, "\x1b[39m", 5);
+            abAppend(ab, color(fg::reset));
             current_color = -1;
           }
           abAppend(ab, &c[j], 1);
@@ -708,13 +713,14 @@ void editorDrawRows(struct abuf *ab) {
           if (color != current_color) {
             current_color = color;
             char buf[16];
+            // FIXME
             int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", color);
             abAppend(ab, buf, clen);
           }
           abAppend(ab, &c[j], 1);
         }
       }
-      abAppend(ab, "\x1b[39m", 5);
+      abAppend(ab, color(fg::reset));
     }
 
     abAppend(ab, "\x1b[K", 3);
@@ -723,7 +729,7 @@ void editorDrawRows(struct abuf *ab) {
 }
 
 void editorDrawStatusBar(struct abuf *ab) {
-  abAppend(ab, "\x1b[7m", 4);
+  abAppend(ab, color(style::reversed));
   char status[80], rstatus[80];
   int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
     E.filename ? E.filename : "[No Name]", E.numrows,
@@ -741,7 +747,7 @@ void editorDrawStatusBar(struct abuf *ab) {
       len++;
     }
   }
-  abAppend(ab, "\x1b[m", 3);
+  abAppend(ab, color(style::reset));
   abAppend(ab, "\r\n", 2);
 }
 
