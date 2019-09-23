@@ -243,7 +243,16 @@ public:
     void get_term_size(int &rows, int &cols) const {
         char buf[32];
         unsigned int i = 0;
-        write(cursor_off());
+        struct CursorOff {
+            const Terminal &term;
+            CursorOff(const Terminal &term) : term{term} {
+                term.write(cursor_off());
+            }
+            ~CursorOff() {
+                term.write(cursor_on());
+            }
+        };
+        CursorOff cursor_off(*this);
         write(move_cursor_right(999) + move_cursor_down(999)
                 + cursor_position_report());
         while (i < sizeof(buf) - 1) {
@@ -261,7 +270,6 @@ public:
         if (sscanf(&buf[2], "%d;%d", &rows, &cols) != 2) {
             throw std::runtime_error("get_term_size(): Invalid response");
         }
-        write(cursor_on());
     }
 };
 
