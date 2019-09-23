@@ -68,7 +68,11 @@ public:
         };
     }
     int read(char *s) const {
-        return ::read(STDIN_FILENO, s, 1);
+        int nread = ::read(STDIN_FILENO, s, 1);
+        if (nread == -1 && errno != EAGAIN) {
+            throw std::runtime_error("read() failed");
+        }
+        return nread;
     }
 };
 
@@ -177,11 +181,8 @@ void die(const char *s) {
 }
 
 int editorReadKey(const Terminal &term) {
-  int nread;
   char c;
-  while ((nread = term.read(&c)) != 1) {
-    if (nread == -1 && errno != EAGAIN) die("read");
-  }
+  while (term.read(&c) != 1) {}
 
   if (c == '\x1b') {
     char seq[3];
