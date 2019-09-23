@@ -614,32 +614,6 @@ void editorFind(const Terminal &term) {
   }
 }
 
-/*** append buffer ***/
-
-struct abuf {
-  char *b;
-  int len;
-};
-
-#define ABUF_INIT {NULL, 0}
-
-void abAppend(struct abuf *ab, const char *s, int len) {
-  char *cnew = (char*)realloc(ab->b, ab->len + len);
-
-  if (cnew == NULL) return;
-  memcpy(&cnew[ab->len], s, len);
-  ab->b = cnew;
-  ab->len += len;
-}
-
-void abAppend(struct abuf *ab, const std::string &s) {
-    abAppend(ab, s.c_str(), s.size());
-}
-
-void abFree(struct abuf *ab) {
-  free(ab->b);
-}
-
 /*** output ***/
 
 void editorScroll() {
@@ -662,7 +636,7 @@ void editorScroll() {
   }
 }
 
-void editorDrawRows(struct abuf *ab) {
+void editorDrawRows(std::string &ab) {
   int y;
   for (y = 0; y < E.screenrows; y++) {
     int filerow = y + E.rowoff;
@@ -674,13 +648,13 @@ void editorDrawRows(struct abuf *ab) {
         if (welcomelen > E.screencols) welcomelen = E.screencols;
         int padding = (E.screencols - welcomelen) / 2;
         if (padding) {
-          abAppend(ab, "~", 1);
+          ab.append("~");
           padding--;
         }
-        while (padding--) abAppend(ab, " ", 1);
-        abAppend(ab, welcome, welcomelen);
+        while (padding--) ab.append(" ");
+        ab.append(welcome);
       } else {
-        abAppend(ab, "~", 1);
+        ab.append("~");
       }
     } else {
       int len = E.row[filerow].rsize - E.coloff;
@@ -693,21 +667,21 @@ void editorDrawRows(struct abuf *ab) {
       for (j = 0; j < len; j++) {
         if (iscntrl(c[j])) {
           char sym = (c[j] <= 26) ? '@' + c[j] : '?';
-          abAppend(ab, color(style::reversed));
-          abAppend(ab, &sym, 1);
-          abAppend(ab, color(style::reset));
+          ab.append(color(style::reversed));
+          ab.append(std::string(&sym,1));
+          ab.append(color(style::reset));
           if (current_color != -1) {
             char buf[16];
             // FIXME:
             int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", current_color);
-            abAppend(ab, buf, clen);
+            ab.append(std::string(buf, clen));
           }
         } else if (hl[j] == HL_NORMAL) {
           if (current_color != -1) {
-            abAppend(ab, color(fg::reset));
+            ab.append(color(fg::reset));
             current_color = -1;
           }
-          abAppend(ab, &c[j], 1);
+          ab.append(std::string(&c[j], 1));
         } else {
           int color = editorSyntaxToColor(hl[j]);
           if (color != current_color) {
@@ -715,21 +689,21 @@ void editorDrawRows(struct abuf *ab) {
             char buf[16];
             // FIXME
             int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", color);
-            abAppend(ab, buf, clen);
+            ab.append(std::string(buf, clen));
           }
-          abAppend(ab, &c[j], 1);
+          ab.append(std::string(&c[j], 1));
         }
       }
-      abAppend(ab, color(fg::reset));
+      ab.append(color(fg::reset));
     }
 
-    abAppend(ab, "\x1b[K", 3);
-    abAppend(ab, "\r\n", 2);
+    ab.append("\x1b[K");
+    ab.append("\r\n");
   }
 }
 
-void editorDrawStatusBar(struct abuf *ab) {
-  abAppend(ab, color(style::reversed));
+void editorDrawStatusBar(std::string &ab) {
+  ab.append(color(style::reversed));
   char status[80], rstatus[80];
   int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
     E.filename ? E.filename : "[No Name]", E.numrows,
@@ -737,49 +711,49 @@ void editorDrawStatusBar(struct abuf *ab) {
   int rlen = snprintf(rstatus, sizeof(rstatus), "%s | %d/%d",
     E.syntax ? E.syntax->filetype : "no ft", E.cy + 1, E.numrows);
   if (len > E.screencols) len = E.screencols;
-  abAppend(ab, status, len);
+  ab.append(std::string(status, len));
   while (len < E.screencols) {
     if (E.screencols - len == rlen) {
-      abAppend(ab, rstatus, rlen);
+      ab.append(std::string(rstatus, rlen));
       break;
     } else {
-      abAppend(ab, " ", 1);
+      ab.append(" ");
       len++;
     }
   }
-  abAppend(ab, color(style::reset));
-  abAppend(ab, "\r\n", 2);
+  ab.append(color(style::reset));
+  ab.append("\r\n");
 }
 
-void editorDrawMessageBar(struct abuf *ab) {
-  abAppend(ab, "\x1b[K", 3);
+void editorDrawMessageBar(std::string &ab) {
+  ab.append("\x1b[K");
   int msglen = strlen(E.statusmsg);
   if (msglen > E.screencols) msglen = E.screencols;
   if (msglen && time(NULL) - E.statusmsg_time < 5)
-    abAppend(ab, E.statusmsg, msglen);
+    ab.append(std::string(E.statusmsg, msglen));
 }
 
 void editorRefreshScreen(const Terminal &term) {
   editorScroll();
 
-  struct abuf ab = ABUF_INIT;
+  std::string ab;
+  ab.reserve(16*1024);
 
-  abAppend(&ab, "\x1b[?25l", 6);
-  abAppend(&ab, "\x1b[H", 3);
+  ab.append("\x1b[?25l");
+  ab.append("\x1b[H");
 
-  editorDrawRows(&ab);
-  editorDrawStatusBar(&ab);
-  editorDrawMessageBar(&ab);
+  editorDrawRows(ab);
+  editorDrawStatusBar(ab);
+  editorDrawMessageBar(ab);
 
   char buf[32];
   snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1,
                                             (E.rx - E.coloff) + 1);
-  abAppend(&ab, buf, strlen(buf));
+  ab.append(std::string(buf, strlen(buf)));
 
-  abAppend(&ab, "\x1b[?25h", 6);
+  ab.append("\x1b[?25h");
 
-  term.write(std::string(ab.b, ab.len));
-  abFree(&ab);
+  term.write(ab);
 }
 
 void editorSetStatusMessage(const char *fmt, ...) {
