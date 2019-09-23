@@ -671,10 +671,7 @@ void editorDrawRows(std::string &ab) {
           ab.append(std::string(&sym,1));
           ab.append(color(style::reset));
           if (current_color != -1) {
-            char buf[16];
-            // FIXME:
-            int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", current_color);
-            ab.append(std::string(buf, clen));
+            ab.append(color(current_color));
           }
         } else if (hl[j] == HL_NORMAL) {
           if (current_color != -1) {
@@ -686,10 +683,7 @@ void editorDrawRows(std::string &ab) {
           int color = editorSyntaxToColor(hl[j]);
           if (color != current_color) {
             current_color = color;
-            char buf[16];
-            // FIXME
-            int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", color);
-            ab.append(std::string(buf, clen));
+            ab.append(::color(color));
           }
           ab.append(std::string(&c[j], 1));
         }
