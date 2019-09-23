@@ -84,20 +84,30 @@ std::string cursor_on()
     return "\x1b[?25h";
 }
 
+// If an attempt is made to move the cursor out of the window, the result is
+// undefined.
 std::string move_cursor(int row, int col)
 {
     return "\x1b[" + std::to_string(row) + ";" + std::to_string(col) + "H";
 }
 
+// If an attempt is made to move the cursor to the right of the right margin, the cursor stops at the right margin.
 std::string move_cursor_right(int col)
 {
     return "\x1b[" + std::to_string(col) + "C";
 }
 
+// If an attempt is made to move the cursor below the bottom margin, the cursor stops at the bottom margin.
 std::string move_cursor_down(int row)
 {
     return "\x1b[" + std::to_string(row) + "B";
 }
+
+std::string cursor_position_report()
+{
+    return "\x1b[6n";
+}
+
 
 std::string erase_to_eol()
 {

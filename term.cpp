@@ -121,7 +121,7 @@ int getCursorPosition(const Terminal &term, int *rows, int *cols) {
   char buf[32];
   unsigned int i = 0;
 
-  term.write("\x1b[6n");
+  term.write(cursor_position_report());
 
   while (i < sizeof(buf) - 1) {
     if (!term.read_raw(&buf[i])) break;
