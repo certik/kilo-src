@@ -140,7 +140,7 @@ int getWindowSize(const Terminal &term, int *rows, int *cols) {
   struct winsize ws;
 
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
-    term.write("\x1b[999C\x1b[999B");
+    term.write(move_cursor_right(999) + move_cursor_down(999));
     return getCursorPosition(term, rows, cols);
   } else {
     *cols = ws.ws_col;

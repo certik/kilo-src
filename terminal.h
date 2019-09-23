@@ -89,6 +89,16 @@ std::string move_cursor(int row, int col)
     return "\x1b[" + std::to_string(row) + ";" + std::to_string(col) + "H";
 }
 
+std::string move_cursor_right(int col)
+{
+    return "\x1b[" + std::to_string(col) + "C";
+}
+
+std::string move_cursor_down(int row)
+{
+    return "\x1b[" + std::to_string(row) + "B";
+}
+
 std::string erase_to_eol()
 {
     return "\x1b[K";
