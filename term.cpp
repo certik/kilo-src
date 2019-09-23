@@ -39,7 +39,8 @@ enum editorKey {
   HOME_KEY,
   END_KEY,
   PAGE_UP,
-  PAGE_DOWN
+  PAGE_DOWN,
+  ESC_KEY
 };
 
 class Terminal {
@@ -101,12 +102,12 @@ public:
       if (c == '\x1b') {
         char seq[3];
 
-        if (!read_raw(&seq[0])) return '\x1b';
-        if (!read_raw(&seq[1])) return '\x1b';
+        if (!read_raw(&seq[0])) return ESC_KEY;
+        if (!read_raw(&seq[1])) return ESC_KEY;
 
         if (seq[0] == '[') {
           if (seq[1] >= '0' && seq[1] <= '9') {
-            if (!read_raw(&seq[2])) return '\x1b';
+            if (!read_raw(&seq[2])) return ESC_KEY;
             if (seq[2] == '~') {
               switch (seq[1]) {
                 case '1': return HOME_KEY;
@@ -135,7 +136,7 @@ public:
           }
         }
 
-        return '\x1b';
+        return ESC_KEY;
       } else {
         return c;
       }
@@ -674,7 +675,7 @@ void editorFindCallback(char *query, int key) {
     saved_hl = NULL;
   }
 
-  if (key == '\r' || key == '\x1b') {
+  if (key == '\r' || key == ESC_KEY) {
     last_match = -1;
     direction = 1;
     return;
@@ -917,7 +918,7 @@ char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(ch
     int c = term.read_key();
     if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE) {
       if (buflen != 0) buf[--buflen] = '\0';
-    } else if (c == '\x1b') {
+    } else if (c == ESC_KEY) {
       editorSetStatusMessage("");
       if (callback) callback(buf, c);
       free(buf);
@@ -1048,7 +1049,7 @@ bool editorProcessKeypress(const Terminal &term) {
       break;
 
     case CTRL_KEY('l'):
-    case '\x1b':
+    case ESC_KEY:
       break;
 
     default:
