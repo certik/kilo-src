@@ -129,6 +129,11 @@ enum Key {
   ESC
 };
 
+/* Note: the code that uses Terminal must be inside try/catch block, otherwise
+ * the destructors will not be called when an exception happens and the
+ * terminal will not be left in a good state. Terminal uses exceptions when
+ * something goes wrong.
+ */
 class Terminal {
 private:
     struct termios orig_termios;
@@ -252,30 +257,23 @@ public:
                 term.write(cursor_on());
             }
         };
-        try {
-            // The CursorOff instance must be initialized inside a try/catch
-            // block, otherwise its destructor will not be called, and the
-            // cursor will be off.
-            CursorOff cursor_off(*this);
-            write(move_cursor_right(999) + move_cursor_down(999)
-                    + cursor_position_report());
-            while (i < sizeof(buf) - 1) {
-                while (!read_raw(&buf[i])) {};
-                if (buf[i] == 'R') break;
-                i++;
-            }
-            buf[i] = '\0';
-            if (i < 7) {
-                throw std::runtime_error("get_term_size(): too short response");
-            }
-            if (buf[0] != '\x1b' || buf[1] != '[') {
-                throw std::runtime_error("get_term_size(): Invalid response");
-            }
-            if (sscanf(&buf[2], "%d;%d", &rows, &cols) != 2) {
-                throw std::runtime_error("get_term_size(): Invalid response");
-            }
-        } catch(...) {
-            throw;
+        CursorOff cursor_off(*this);
+        write(move_cursor_right(999) + move_cursor_down(999)
+                + cursor_position_report());
+        while (i < sizeof(buf) - 1) {
+            while (!read_raw(&buf[i])) {};
+            if (buf[i] == 'R') break;
+            i++;
+        }
+        buf[i] = '\0';
+        if (i < 7) {
+            throw std::runtime_error("get_term_size(): too short response");
+        }
+        if (buf[0] != '\x1b' || buf[1] != '[') {
+            throw std::runtime_error("get_term_size(): Invalid response");
+        }
+        if (sscanf(&buf[2], "%d;%d", &rows, &cols) != 2) {
+            throw std::runtime_error("get_term_size(): Invalid response");
         }
     }
 };
