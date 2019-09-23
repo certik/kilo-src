@@ -36,12 +36,12 @@ enum Key {
   ARROW_RIGHT,
   ARROW_UP,
   ARROW_DOWN,
-  DEL_KEY,
-  HOME_KEY,
-  END_KEY,
+  DEL,
+  HOME,
+  END,
   PAGE_UP,
   PAGE_DOWN,
-  ESC_KEY
+  ESC
 };
 
 class Terminal {
@@ -111,45 +111,45 @@ public:
       if (c == '\x1b') {
         char seq[3];
 
-        if (!read_raw(&seq[0])) return ESC_KEY;
-        if (!read_raw(&seq[1])) return ESC_KEY;
+        if (!read_raw(&seq[0])) return Key::ESC;
+        if (!read_raw(&seq[1])) return Key::ESC;
 
         if (seq[0] == '[') {
           if (seq[1] >= '0' && seq[1] <= '9') {
-            if (!read_raw(&seq[2])) return ESC_KEY;
+            if (!read_raw(&seq[2])) return Key::ESC;
             if (seq[2] == '~') {
               switch (seq[1]) {
-                case '1': return HOME_KEY;
-                case '3': return DEL_KEY;
-                case '4': return END_KEY;
-                case '5': return PAGE_UP;
-                case '6': return PAGE_DOWN;
-                case '7': return HOME_KEY;
-                case '8': return END_KEY;
+                case '1': return Key::HOME;
+                case '3': return Key::DEL;
+                case '4': return Key::END;
+                case '5': return Key::PAGE_UP;
+                case '6': return Key::PAGE_DOWN;
+                case '7': return Key::HOME;
+                case '8': return Key::END;
               }
             }
           } else {
             switch (seq[1]) {
-              case 'A': return ARROW_UP;
-              case 'B': return ARROW_DOWN;
-              case 'C': return ARROW_RIGHT;
-              case 'D': return ARROW_LEFT;
-              case 'H': return HOME_KEY;
-              case 'F': return END_KEY;
+              case 'A': return Key::ARROW_UP;
+              case 'B': return Key::ARROW_DOWN;
+              case 'C': return Key::ARROW_RIGHT;
+              case 'D': return Key::ARROW_LEFT;
+              case 'H': return Key::HOME;
+              case 'F': return Key::END;
             }
           }
         } else if (seq[0] == 'O') {
           switch (seq[1]) {
-            case 'H': return HOME_KEY;
-            case 'F': return END_KEY;
+            case 'H': return Key::HOME;
+            case 'F': return Key::END;
           }
         }
 
-        return ESC_KEY;
+        return Key::ESC;
       } else {
         switch (c) {
           case '\r': return Key::ENTER;
-          case 127: return BACKSPACE;
+          case 127: return Key::BACKSPACE;
         }
         return c;
       }
@@ -688,13 +688,13 @@ void editorFindCallback(char *query, int key) {
     saved_hl = NULL;
   }
 
-  if (key == Key::ENTER || key == ESC_KEY) {
+  if (key == Key::ENTER || key == Key::ESC) {
     last_match = -1;
     direction = 1;
     return;
-  } else if (key == ARROW_RIGHT || key == ARROW_DOWN) {
+  } else if (key == Key::ARROW_RIGHT || key == Key::ARROW_DOWN) {
     direction = 1;
-  } else if (key == ARROW_LEFT || key == ARROW_UP) {
+  } else if (key == Key::ARROW_LEFT || key == Key::ARROW_UP) {
     direction = -1;
   } else {
     last_match = -1;
@@ -929,9 +929,9 @@ char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(ch
     editorRefreshScreen(term);
 
     int c = term.read_key();
-    if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE) {
+    if (c == Key::DEL || c == CTRL_KEY('h') || c == Key::BACKSPACE) {
       if (buflen != 0) buf[--buflen] = '\0';
-    } else if (c == ESC_KEY) {
+    } else if (c == Key::ESC) {
       editorSetStatusMessage("");
       if (callback) callback(buf, c);
       free(buf);
@@ -959,7 +959,7 @@ void editorMoveCursor(int key) {
   erow *row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
 
   switch (key) {
-    case ARROW_LEFT:
+    case Key::ARROW_LEFT:
       if (E.cx != 0) {
         E.cx--;
       } else if (E.cy > 0) {
@@ -967,7 +967,7 @@ void editorMoveCursor(int key) {
         E.cx = E.row[E.cy].size;
       }
       break;
-    case ARROW_RIGHT:
+    case Key::ARROW_RIGHT:
       if (row && E.cx < row->size) {
         E.cx++;
       } else if (row && E.cx == row->size) {
@@ -975,12 +975,12 @@ void editorMoveCursor(int key) {
         E.cx = 0;
       }
       break;
-    case ARROW_UP:
+    case Key::ARROW_UP:
       if (E.cy != 0) {
         E.cy--;
       }
       break;
-    case ARROW_DOWN:
+    case Key::ARROW_DOWN:
       if (E.cy < E.numrows) {
         E.cy++;
       }
@@ -1018,11 +1018,11 @@ bool editorProcessKeypress(const Terminal &term) {
       editorSave(term);
       break;
 
-    case HOME_KEY:
+    case Key::HOME:
       E.cx = 0;
       break;
 
-    case END_KEY:
+    case Key::END:
       if (E.cy < E.numrows)
         E.cx = E.row[E.cy].size;
       break;
@@ -1031,38 +1031,38 @@ bool editorProcessKeypress(const Terminal &term) {
       editorFind(term);
       break;
 
-    case BACKSPACE:
+    case Key::BACKSPACE:
     case CTRL_KEY('h'):
-    case DEL_KEY:
-      if (c == DEL_KEY) editorMoveCursor(ARROW_RIGHT);
+    case Key::DEL:
+      if (c == Key::DEL) editorMoveCursor(Key::ARROW_RIGHT);
       editorDelChar();
       break;
 
-    case PAGE_UP:
-    case PAGE_DOWN:
+    case Key::PAGE_UP:
+    case Key::PAGE_DOWN:
       {
-        if (c == PAGE_UP) {
+        if (c == Key::PAGE_UP) {
           E.cy = E.rowoff;
-        } else if (c == PAGE_DOWN) {
+        } else if (c == Key::PAGE_DOWN) {
           E.cy = E.rowoff + E.screenrows - 1;
           if (E.cy > E.numrows) E.cy = E.numrows;
         }
 
         int times = E.screenrows;
         while (times--)
-          editorMoveCursor(c == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+          editorMoveCursor(c == Key::PAGE_UP ? Key::ARROW_UP : Key::ARROW_DOWN);
       }
       break;
 
-    case ARROW_UP:
-    case ARROW_DOWN:
-    case ARROW_LEFT:
-    case ARROW_RIGHT:
+    case Key::ARROW_UP:
+    case Key::ARROW_DOWN:
+    case Key::ARROW_LEFT:
+    case Key::ARROW_RIGHT:
       editorMoveCursor(c);
       break;
 
     case CTRL_KEY('l'):
-    case ESC_KEY:
+    case Key::ESC:
       break;
 
     default:
