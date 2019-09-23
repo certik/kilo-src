@@ -63,7 +63,9 @@ public:
         }
     }
     void out(const std::string &s) {
-        write(STDIN_FILENO, s.c_str(), s.size());
+        if (write(STDOUT_FILENO, s.c_str(), s.size()) != (int) s.size()) {
+            throw std::runtime_error("write() failed");
+        };
     }
 };
 
