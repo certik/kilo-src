@@ -31,6 +31,7 @@
 
 enum editorKey {
   BACKSPACE = 127,
+  ENTER_KEY = '\r',
   ARROW_LEFT = 1000,
   ARROW_RIGHT,
   ARROW_UP,
@@ -683,7 +684,7 @@ void editorFindCallback(char *query, int key) {
     saved_hl = NULL;
   }
 
-  if (key == '\r' || key == ESC_KEY) {
+  if (key == ENTER_KEY || key == ESC_KEY) {
     last_match = -1;
     direction = 1;
     return;
@@ -931,7 +932,7 @@ char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(ch
       if (callback) callback(buf, c);
       free(buf);
       return NULL;
-    } else if (c == '\r') {
+    } else if (c == ENTER_KEY) {
       if (buflen != 0) {
         editorSetStatusMessage("");
         if (callback) callback(buf, c);
@@ -995,7 +996,7 @@ bool editorProcessKeypress(const Terminal &term) {
   int c = term.read_key();
 
   switch (c) {
-    case '\r':
+    case ENTER_KEY:
       editorInsertNewline();
       break;
 
