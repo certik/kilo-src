@@ -230,7 +230,7 @@ int getCursorPosition(const Terminal &term, int *rows, int *cols) {
   char buf[32];
   unsigned int i = 0;
 
-  if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4) return -1;
+  term.write("\x1b[6n");
 
   while (i < sizeof(buf) - 1) {
     if (term.read(&buf[i]) != 1) break;
@@ -249,7 +249,7 @@ int getWindowSize(const Terminal &term, int *rows, int *cols) {
   struct winsize ws;
 
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
-    if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12) return -1;
+    term.write("\x1b[999C\x1b[999B");
     return getCursorPosition(term, rows, cols);
   } else {
     *cols = ws.ws_col;
@@ -862,7 +862,7 @@ void editorDrawMessageBar(struct abuf *ab) {
     abAppend(ab, E.statusmsg, msglen);
 }
 
-void editorRefreshScreen() {
+void editorRefreshScreen(const Terminal &term) {
   editorScroll();
 
   struct abuf ab = ABUF_INIT;
@@ -881,7 +881,7 @@ void editorRefreshScreen() {
 
   abAppend(&ab, "\x1b[?25h", 6);
 
-  write(STDOUT_FILENO, ab.b, ab.len);
+  term.write(std::string(ab.b, ab.len));
   abFree(&ab);
 }
 
@@ -904,7 +904,7 @@ char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(ch
 
   while (1) {
     editorSetStatusMessage(prompt, buf);
-    editorRefreshScreen();
+    editorRefreshScreen(term);
 
     int c = editorReadKey(term);
     if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE) {
@@ -1082,9 +1082,9 @@ int main(int argc, char *argv[]) {
   editorSetStatusMessage(
     "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 
-  editorRefreshScreen();
+  editorRefreshScreen(term);
   while (editorProcessKeypress(term)) {
-    editorRefreshScreen();
+    editorRefreshScreen(term);
   }
 
   return 0;
