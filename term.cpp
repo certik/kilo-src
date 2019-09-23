@@ -691,7 +691,7 @@ void editorDrawRows(std::string &ab) {
       ab.append(color(fg::reset));
     }
 
-    ab.append("\x1b[K");
+    ab.append(erase_to_eol());
     ab.append("\r\n");
   }
 }
@@ -720,7 +720,7 @@ void editorDrawStatusBar(std::string &ab) {
 }
 
 void editorDrawMessageBar(std::string &ab) {
-  ab.append("\x1b[K");
+  ab.append(erase_to_eol());
   int msglen = strlen(E.statusmsg);
   if (msglen > E.screencols) msglen = E.screencols;
   if (msglen && time(NULL) - E.statusmsg_time < 5)

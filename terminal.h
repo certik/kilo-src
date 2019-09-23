@@ -89,6 +89,10 @@ std::string move_cursor(int row, int col)
     return "\x1b[" + std::to_string(row) + ";" + std::to_string(col) + "H";
 }
 
+std::string erase_to_eol()
+{
+    return "\x1b[K";
+}
 
 enum Key {
   BACKSPACE = 1000,
