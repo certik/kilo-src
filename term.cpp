@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <fstream>
 #include <memory>
 
 #include <ctype.h>
@@ -109,13 +110,6 @@ struct editorSyntax HLDB[] = {
 void editorSetStatusMessage(const char *fmt, ...);
 void editorRefreshScreen();
 char *editorPrompt(const Terminal &term, const char *prompt, void (*callback)(char *, int));
-
-/*** terminal ***/
-
-void die(const char *s) {
-
-  throw std::runtime_error(s);
-}
 
 
 /*** syntax highlighting ***/
@@ -458,26 +452,24 @@ char *editorRowsToString(int *buflen) {
 }
 
 void editorOpen(char *filename) {
-  free(E.filename);
-  E.filename = strdup(filename);
+    free(E.filename);
+    E.filename = strdup(filename);
 
-  editorSelectSyntaxHighlight();
+    editorSelectSyntaxHighlight();
 
-  FILE *fp = fopen(filename, "r");
-  if (!fp) die("fopen");
-
-  char *line = NULL;
-  size_t linecap = 0;
-  ssize_t linelen;
-  while ((linelen = getline(&line, &linecap, fp)) != -1) {
-    while (linelen > 0 && (line[linelen - 1] == '\n' ||
-                           line[linelen - 1] == '\r'))
-      linelen--;
-    editorInsertRow(E.numrows, line, linelen);
-  }
-  free(line);
-  fclose(fp);
-  E.dirty = 0;
+    std::ifstream f(filename);
+    if (f.fail()) throw std::runtime_error("File failed to open.");
+    std::string line;
+    std::getline(f, line);
+    while (f.rdstate() == std::ios_base::goodbit) {
+        int linelen = line.size();
+        while (linelen > 0 && (line[linelen - 1] == '\n' ||
+                               line[linelen - 1] == '\r'))
+            linelen--;
+        editorInsertRow(E.numrows, line.c_str(), linelen);
+        std::getline(f, line);
+    }
+    E.dirty = 0;
 }
 
 void editorSave(const Terminal &term) {
@@ -904,19 +896,25 @@ void initEditor(const Terminal &term) {
 }
 
 int main(int argc, char *argv[]) {
-  Terminal term;
-  initEditor(term);
-  if (argc >= 2) {
-    editorOpen(argv[1]);
+  // We must put all code in try/catch block, otherwise destructors are not
+  // being called when exception happens and the terminal is not put into
+  // correct state.
+  try {
+      Terminal term;
+      initEditor(term);
+      if (argc >= 2) {
+        editorOpen(argv[1]);
+      }
+
+      editorSetStatusMessage(
+        "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
+
+      editorRefreshScreen(term);
+      while (editorProcessKeypress(term)) {
+        editorRefreshScreen(term);
+      }
+  } catch(...) {
+      throw;
   }
-
-  editorSetStatusMessage(
-    "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
-
-  editorRefreshScreen(term);
-  while (editorProcessKeypress(term)) {
-    editorRefreshScreen(term);
-  }
-
   return 0;
 }
