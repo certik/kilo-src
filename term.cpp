@@ -30,9 +30,9 @@
 
 
 enum editorKey {
-  BACKSPACE = 127,
-  ENTER_KEY = '\r',
-  ARROW_LEFT = 1000,
+  BACKSPACE = 1000,
+  ENTER_KEY,
+  ARROW_LEFT,
   ARROW_RIGHT,
   ARROW_UP,
   ARROW_DOWN,
@@ -147,6 +147,10 @@ public:
 
         return ESC_KEY;
       } else {
+        switch (c) {
+          case '\r': return ENTER_KEY;
+          case 127: return BACKSPACE;
+        }
         return c;
       }
     }
