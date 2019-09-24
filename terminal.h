@@ -123,8 +123,10 @@ enum Key {
     ARROW_RIGHT,
     ARROW_UP,
     ARROW_DOWN,
+    NUMERIC_5,
     DEL,
     HOME,
+    INSERT,
     END,
     PAGE_UP,
     PAGE_DOWN,
@@ -216,7 +218,8 @@ public:
     }
 
     // If there was a key press, returns the translated key from escape codes,
-    // otherwise returns 0. If the escape code is not supported, returns -1.
+    // otherwise returns 0. If the escape code is not supported, returns -1 for
+    // invalid escape code and -2 for valid but unsupported escape code.
     int read_key0() const
     {
         char c;
@@ -228,17 +231,23 @@ public:
 
             if (!read_raw(&seq[0]))
                 return Key::ESC;
-            if (!read_raw(&seq[1]))
+            if (!read_raw(&seq[1])) {
+                // Invalid escape code
                 return -1;
+            }
 
             if (seq[0] == '[') {
                 if (seq[1] >= '0' && seq[1] <= '9') {
-                    if (!read_raw(&seq[2]))
+                    if (!read_raw(&seq[2])) {
+                        // Invalid escape code
                         return -1;
+                    }
                     if (seq[2] == '~') {
                         switch (seq[1]) {
                         case '1':
                             return Key::HOME;
+                        case '2':
+                            return Key::INSERT;
                         case '3':
                             return Key::DEL;
                         case '4':
@@ -263,6 +272,8 @@ public:
                         return Key::ARROW_RIGHT;
                     case 'D':
                         return Key::ARROW_LEFT;
+                    case 'E':
+                        return Key::NUMERIC_5;
                     case 'H':
                         return Key::HOME;
                     case 'F':
@@ -278,10 +289,12 @@ public:
                 }
             }
 
-            return -1;
+            //std::cout << "Unsupported escape sequence:" << std::endl;
+            //std::cout << seq[0] << seq[1] << seq[2] << std::endl;
+            return -2;
         } else {
             switch (c) {
-            case '\r':
+            case 13:
                 return Key::ENTER;
             case 127:
                 return Key::BACKSPACE;
