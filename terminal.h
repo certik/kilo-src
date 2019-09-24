@@ -294,6 +294,7 @@ public:
     {
         int key;
         while ((key = read_key0()) == 0) {
+            std::cout << ".";
         }
         return key;
     }
