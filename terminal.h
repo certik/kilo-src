@@ -8,6 +8,8 @@
 
 #ifdef _WIN32
 
+#include <conio.h>
+#include <windows.h>
 
 #else
 
@@ -434,6 +436,10 @@ public:
     void get_term_size(int& rows, int& cols) const
     {
 #ifdef _WIN32
+        CONSOLE_SCREEN_BUFFER_INFO inf;
+        GetConsoleScreenBufferInfo(_consoleOut, &inf);
+        cols = 80;
+        rows = 1 + inf.srWindow.Bottom - inf.srWindow.Top;
 #else
         struct winsize ws;
         if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
