@@ -275,8 +275,10 @@ public:
             throw std::runtime_error("ReadConsoleInput() failed");
         }
         if (nread == 1 && buf[0].EventType == KEY_EVENT) {
-            *s = 'O';
-            return true;
+            if (buf[0].Event.KeyEvent.bKeyDown) {
+                *s = 'O';
+                return true;
+            }
         }
         return false;
 #else
