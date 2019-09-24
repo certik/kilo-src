@@ -119,6 +119,7 @@ std::string erase_to_eol()
 enum Key {
     BACKSPACE = 1000,
     ENTER,
+    TAB,
     ARROW_LEFT,
     ARROW_RIGHT,
     ARROW_UP,
@@ -344,6 +345,8 @@ public:
             return -4;
         } else {
             switch (c) {
+            case 9:
+                return Key::TAB;
             case 13:
                 return Key::ENTER;
             case 127:

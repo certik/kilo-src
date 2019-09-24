@@ -864,6 +864,10 @@ bool editorProcessKeypress(const Terminal &term) {
     case Key::ESC:
       break;
 
+    case Key::TAB:
+      editorInsertChar('\t');
+      break;
+
     default:
       editorInsertChar(c);
       break;
