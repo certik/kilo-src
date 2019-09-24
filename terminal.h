@@ -468,8 +468,8 @@ public:
 #ifdef _WIN32
         CONSOLE_SCREEN_BUFFER_INFO inf;
         GetConsoleScreenBufferInfo(hout, &inf);
-        cols = inf.dwSize.X;
-        rows = 1 + inf.srWindow.Bottom - inf.srWindow.Top;
+        cols = inf.srWindow.Right - inf.srWindow.Left + 1;
+        rows = inf.srWindow.Bottom - inf.srWindow.Top + 1;
 #else
         struct winsize ws;
         if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
