@@ -231,7 +231,7 @@ public:
 #endif
     }
 
-    ~Terminal()
+    ~Terminal() noexcept(false)
     {
         if (restore_screen) {
             write("\033[?47l"); // restore screen
