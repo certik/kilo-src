@@ -8,7 +8,6 @@
 
 #ifdef _WIN32
 
-#include <conio.h>
 #include <windows.h>
 
 #else
@@ -436,8 +435,9 @@ public:
     void get_term_size(int& rows, int& cols) const
     {
 #ifdef _WIN32
+        HANDLE hout = GetStdHandle(STD_OUTPUT_HANDLE);
         CONSOLE_SCREEN_BUFFER_INFO inf;
-        GetConsoleScreenBufferInfo(_consoleOut, &inf);
+        GetConsoleScreenBufferInfo(hout, &inf);
         cols = 80;
         rows = 1 + inf.srWindow.Bottom - inf.srWindow.Top;
 #else
