@@ -166,6 +166,8 @@ private:
 #ifdef _WIN32
     HANDLE hout;
     HANDLE hin;
+    DWORD dwOriginalOutMode;
+    DWORD dwOriginalInMode;
 #else
     struct termios orig_termios;
 #endif
@@ -183,6 +185,25 @@ public:
         hin = GetStdHandle(STD_INPUT_HANDLE);
         if (hin == INVALID_HANDLE_VALUE) {
             throw std::runtime_error("GetStdHandle(STD_INPUT_HANDLE) failed");
+        }
+
+        if (!GetConsoleMode(hout, &dwOriginalOutMode)) {
+            throw std::runtime_error("GetConsoleMode() failed");
+        }
+        if (!GetConsoleMode(hin, &dwOriginalInMode)) {
+            throw std::runtime_error("GetConsoleMode() failed");
+        }
+
+        DWORD dwRequestedOutModes = ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN;
+        DWORD dwRequestedInModes = ENABLE_VIRTUAL_TERMINAL_INPUT;
+
+        DWORD dwOutMode = dwOriginalOutMode | dwRequestedOutModes;
+        if (!SetConsoleMode(hout, dwOutMode)) {
+            throw std::runtime_error("SetConsoleMode() failed");
+        }
+        DWORD dwInMode = dwOriginalInMode | dwRequestedInModes;
+        if (!SetConsoleMode(hin, dwInMode)) {
+            throw std::runtime_error("SetConsoleMode() failed");
         }
 #else
         if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
