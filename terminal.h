@@ -273,7 +273,7 @@ public:
         }
     }
 
-    // This function takes about 23ms
+    // This function takes about 23ms, so it should only be used as a fallback
     void get_term_size_slow(int &rows, int &cols) const {
         struct CursorOff {
             const Terminal &term;
