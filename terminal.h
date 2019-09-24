@@ -438,7 +438,7 @@ public:
         HANDLE hout = GetStdHandle(STD_OUTPUT_HANDLE);
         CONSOLE_SCREEN_BUFFER_INFO inf;
         GetConsoleScreenBufferInfo(hout, &inf);
-        cols = 80;
+        cols = inf.dwSize.X;
         rows = 1 + inf.srWindow.Bottom - inf.srWindow.Top;
 #else
         struct winsize ws;
