@@ -137,8 +137,9 @@ enum Key {
 class Terminal {
 private:
     struct termios orig_termios;
+    bool restore_screen;
 public:
-    Terminal() {
+    Terminal() : restore_screen{false} {
         if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
             throw std::runtime_error("tcgetattr() failed");
         }
@@ -155,19 +156,24 @@ public:
         if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1) {
             throw std::runtime_error("tcsetattr() failed");
         }
-
-        write("\0337"); // save current cursor position
-        write("\033[?47h"); // save screen
     }
 
     ~Terminal() {
-        write("\033[?47l"); // restore screen
-        write("\0338"); // restore current cursor position
+        if (restore_screen) {
+            write("\033[?47l"); // restore screen
+            write("\0338"); // restore current cursor position
+        }
         if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
             std::cout << "tcsetattr() failed in destructor, terminating."
                 << std::endl;
             exit(1);
         }
+    }
+
+    void save_screen() {
+        restore_screen = true;
+        write("\0337"); // save current cursor position
+        write("\033[?47h"); // save screen
     }
 
     void write(const std::string &s) const {
@@ -255,7 +261,7 @@ public:
             i++;
         }
         buf[i] = '\0';
-        if (i < 7) {
+        if (i < 6) {
             throw std::runtime_error("get_cursor_position(): too short response");
         }
         if (buf[0] != '\x1b' || buf[1] != '[') {
@@ -266,7 +272,7 @@ public:
         }
     }
 
-    void get_term_size(int &rows, int &cols) const {
+    void get_term_size_slow(int &rows, int &cols) const {
         struct CursorOff {
             const Terminal &term;
             CursorOff(const Terminal &term) : term{term} {
@@ -277,8 +283,11 @@ public:
             }
         };
         CursorOff cursor_off(*this);
+        int old_row, old_col;
+        get_cursor_position(old_row, old_col);
         write(move_cursor_right(999) + move_cursor_down(999));
         get_cursor_position(rows, cols);
+        write(move_cursor(old_row, old_col));
     }
 };
 
