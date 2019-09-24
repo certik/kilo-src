@@ -230,8 +230,8 @@ public:
     }
 
     // If there was a key press, returns the translated key from escape codes,
-    // otherwise returns 0. If the escape code is not supported, returns -1 for
-    // invalid escape code and -2 for valid but unsupported escape code.
+    // otherwise returns 0. If the escape code is not supported, returns a
+    // negative number.
     int read_key0() const
     {
         char c;
@@ -239,20 +239,18 @@ public:
             return 0;
 
         if (c == '\x1b') {
-            char seq[3];
+            char seq[4];
 
             if (!read_raw(&seq[0]))
                 return Key::ESC;
             if (!read_raw(&seq[1])) {
-                // Invalid escape code
                 return -1;
             }
 
             if (seq[0] == '[') {
                 if (seq[1] >= '0' && seq[1] <= '9') {
                     if (!read_raw(&seq[2])) {
-                        // Invalid escape code
-                        return -1;
+                        return -2;
                     }
                     if (seq[2] == '~') {
                         switch (seq[1]) {
@@ -272,6 +270,38 @@ public:
                             return Key::HOME;
                         case '8':
                             return Key::END;
+                        }
+                    } else {
+                        if (seq[2] >= '0' && seq[2] <= '9') {
+                            if (!read_raw(&seq[3])) {
+                                // Invalid escape code
+                                return -3;
+                            }
+                            if (seq[3] == '~') {
+                                if (seq[1] == '1') {
+                                    switch (seq[2]) {
+                                    case '5':
+                                        return Key::F5;
+                                    case '7':
+                                        return Key::F6;
+                                    case '8':
+                                        return Key::F7;
+                                    case '9':
+                                        return Key::F8;
+                                    }
+                                } else if (seq[1] == '2') {
+                                    switch (seq[2]) {
+                                    case '0':
+                                        return Key::F9;
+                                    case '1':
+                                        return Key::F10;
+                                    case '3':
+                                        return Key::F11;
+                                    case '4':
+                                        return Key::F12;
+                                    }
+                                }
+                            }
                         }
                     }
                 } else {
@@ -310,8 +340,8 @@ public:
             }
 
             //std::cout << "Unsupported escape sequence:" << std::endl;
-            //std::cout << seq[0] << seq[1] << seq[2] << std::endl;
-            return -2;
+            //std::cout << seq[0] << seq[1] << seq[2] << seq[3] << std::endl;
+            return -4;
         } else {
             switch (c) {
             case 13:
