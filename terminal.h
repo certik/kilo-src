@@ -269,7 +269,16 @@ public:
     bool read_raw(char* s) const
     {
 #ifdef _WIN32
-	return false;
+        INPUT_RECORD buf[1];
+        DWORD nread;
+        if (!ReadConsoleInput(hin, buf, 1, &nread)) {
+            throw std::runtime_error("ReadConsoleInput() failed");
+        }
+        if (nread == 1 && buf[0].EventType == KEY_EVENT) {
+            *s = 'O';
+            return true;
+        }
+        return false;
 #else
         int nread = read(STDIN_FILENO, s, 1);
         if (nread == -1 && errno != EAGAIN) {
