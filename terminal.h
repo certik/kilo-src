@@ -261,7 +261,7 @@ public:
             i++;
         }
         buf[i] = '\0';
-        if (i < 6) {
+        if (i < 5) {
             throw std::runtime_error("get_cursor_position(): too short response");
         }
         if (buf[0] != '\x1b' || buf[1] != '[') {
