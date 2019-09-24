@@ -1,3 +1,5 @@
+all: t term
+
 t: t.cpp terminal.h
 	$(CXX) t.cpp -o t -Wall -Wextra --std=c++14
 
