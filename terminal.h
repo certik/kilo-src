@@ -4,9 +4,17 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+
+#ifdef _WIN32
+
+
+#else
+
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
+
+#endif
 
 #define CTRL_KEY(k) ((k)&0x1f)
 
@@ -153,13 +161,18 @@ enum Key {
  */
 class Terminal {
 private:
+#ifdef _WIN32
+#else
     struct termios orig_termios;
+#endif
     bool restore_screen;
 
 public:
     Terminal(bool disable_ctrl_c=true)
         : restore_screen{ false }
     {
+#ifdef _WIN32
+#else
         if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
             throw std::runtime_error("tcgetattr() failed");
         }
@@ -182,6 +195,7 @@ public:
         if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1) {
             throw std::runtime_error("tcsetattr() failed");
         }
+#endif
     }
 
     ~Terminal()
@@ -190,11 +204,14 @@ public:
             write("\033[?47l"); // restore screen
             write("\0338"); // restore current cursor position
         }
+#ifdef _WIN32
+#else
         if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
             std::cout << "tcsetattr() failed in destructor, terminating."
                       << std::endl;
             exit(1);
         }
+#endif
     }
 
     void save_screen()
@@ -206,19 +223,26 @@ public:
 
     void write(const std::string& s) const
     {
+#ifdef _WIN32
+        printf(s.c_str());
+#else
         if (::write(STDOUT_FILENO, s.c_str(), s.size()) != (int)s.size()) {
             throw std::runtime_error("write() failed");
         };
+#endif
     }
 
     // Returns true if a character is read, otherwise immediately returns false
     bool read_raw(char* s) const
     {
+#ifdef _WIN32
+#else
         int nread = read(STDIN_FILENO, s, 1);
         if (nread == -1 && errno != EAGAIN) {
             throw std::runtime_error("read() failed");
         }
         return (nread == 1);
+#endif
     }
 
     // Waits for a key press, translates escape codes
@@ -407,6 +431,8 @@ public:
     // the slow version
     void get_term_size(int& rows, int& cols) const
     {
+#ifdef _WIN32
+#else
         struct winsize ws;
         if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
             get_term_size_slow(rows, cols);
@@ -414,6 +440,7 @@ public:
             cols = ws.ws_col;
             rows = ws.ws_row;
         }
+#endif
     }
 };
 
