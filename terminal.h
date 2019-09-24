@@ -238,6 +238,12 @@ public:
             write("\0338"); // restore current cursor position
         }
 #ifdef _WIN32
+        if (!SetConsoleMode(hout, dwOriginalOutMode)) {
+            throw std::runtime_error("SetConsoleMode() failed");
+        }
+        if (!SetConsoleMode(hin, dwOriginalInMode)) {
+            throw std::runtime_error("SetConsoleMode() failed");
+        }
 #else
         if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) {
             std::cout << "tcsetattr() failed in destructor, terminating."
