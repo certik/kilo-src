@@ -216,7 +216,7 @@ public:
     }
 
     // If there was a key press, returns the translated key from escape codes,
-    // otherwise returns 0.
+    // otherwise returns 0. If the escape code is not supported, returns -1.
     int read_key0() const
     {
         char c;
@@ -229,12 +229,12 @@ public:
             if (!read_raw(&seq[0]))
                 return Key::ESC;
             if (!read_raw(&seq[1]))
-                return Key::ESC;
+                return -1;
 
             if (seq[0] == '[') {
                 if (seq[1] >= '0' && seq[1] <= '9') {
                     if (!read_raw(&seq[2]))
-                        return Key::ESC;
+                        return -1;
                     if (seq[2] == '~') {
                         switch (seq[1]) {
                         case '1':
@@ -278,7 +278,7 @@ public:
                 }
             }
 
-            return Key::ESC;
+            return -1;
         } else {
             switch (c) {
             case '\r':
