@@ -6,6 +6,7 @@
 #include <memory>
 #include <termios.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 
@@ -272,6 +273,7 @@ public:
         }
     }
 
+    // This function takes about 23ms
     void get_term_size_slow(int &rows, int &cols) const {
         struct CursorOff {
             const Terminal &term;
@@ -290,22 +292,16 @@ public:
         write(move_cursor(old_row, old_col));
     }
 
+    // This function is immediate if ioctl succeeds, otherwise falls back on
+    // the slow version
     void get_term_size(int &rows, int &cols) const {
-        struct CursorOff {
-            const Terminal &term;
-            CursorOff(const Terminal &term) : term{term} {
-                term.write(cursor_off());
-            }
-            ~CursorOff() {
-                term.write(cursor_on());
-            }
-        };
-        CursorOff cursor_off(*this);
-        int old_row, old_col;
-        get_cursor_position(old_row, old_col);
-        write(move_cursor_right(999) + move_cursor_down(999));
-        get_cursor_position(rows, cols);
-        write(move_cursor(old_row, old_col));
+        struct winsize ws;
+        if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
+            get_term_size_slow(rows, cols);
+        } else {
+            cols = ws.ws_col;
+            rows = ws.ws_row;
+        }
     }
 };
 

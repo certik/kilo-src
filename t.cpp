@@ -8,7 +8,7 @@ int main() {
       Terminal term;
       std::cout << "OK" << "\r\n";
       int rows, cols;
-      term.get_term_size_slow(rows, cols);
+      term.get_term_size(rows, cols);
       std::cout << "Dimension:" << cols << " " << rows << "\r\n";
   } catch(...) {
       throw;
