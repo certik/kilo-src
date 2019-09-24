@@ -2,7 +2,7 @@
 
 int main() {
     try {
-        Terminal term;
+        Terminal term(false);
         std::cout << "OK" << std::endl;;
         int rows, cols;
         term.get_term_size(rows, cols);

@@ -142,7 +142,7 @@ private:
     bool restore_screen;
 
 public:
-    Terminal()
+    Terminal(bool disable_ctrl_c=true)
         : restore_screen{ false }
     {
         if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
@@ -157,7 +157,10 @@ public:
         // for EOL instead of "\r\n".
         //raw.c_oflag &= ~(OPOST);
         raw.c_cflag |= (CS8);
-        raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+        raw.c_lflag &= ~(ECHO | ICANON | IEXTEN);
+        if (disable_ctrl_c) {
+            raw.c_lflag &= ~(ISIG);
+        }
         raw.c_cc[VMIN] = 0;
         raw.c_cc[VTIME] = 0;
 
