@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <string>
 
 #ifdef _WIN32
 
@@ -236,6 +237,7 @@ public:
     bool read_raw(char* s) const
     {
 #ifdef _WIN32
+	return false;
 #else
         int nread = read(STDIN_FILENO, s, 1);
         if (nread == -1 && errno != EAGAIN) {
