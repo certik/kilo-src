@@ -130,7 +130,19 @@ enum Key {
     END,
     PAGE_UP,
     PAGE_DOWN,
-    ESC
+    ESC,
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
 };
 
 /* Note: the code that uses Terminal must be inside try/catch block, otherwise
@@ -282,10 +294,18 @@ public:
                 }
             } else if (seq[0] == 'O') {
                 switch (seq[1]) {
-                case 'H':
-                    return Key::HOME;
                 case 'F':
                     return Key::END;
+                case 'H':
+                    return Key::HOME;
+                case 'P':
+                    return Key::F1;
+                case 'Q':
+                    return Key::F2;
+                case 'R':
+                    return Key::F3;
+                case 'S':
+                    return Key::F4;
                 }
             }
 
