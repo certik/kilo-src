@@ -202,6 +202,7 @@ public:
             throw std::runtime_error("SetConsoleMode() failed");
         }
         DWORD dwInMode = dwOriginalInMode | dwRequestedInModes;
+        dwInMode &= ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT);
         if (!SetConsoleMode(hin, dwInMode)) {
             throw std::runtime_error("SetConsoleMode() failed");
         }
