@@ -6,10 +6,10 @@ int main() {
   // correct state.
   try {
       Terminal term;
-      std::cout << "OK" << "\r\n";
+      std::cout << "OK" << std::endl;;
       int rows, cols;
       term.get_term_size(rows, cols);
-      std::cout << "Dimension:" << cols << " " << rows << "\r\n";
+      std::cout << "Dimension:" << cols << " " << rows << std::endl;
   } catch(...) {
       throw;
   }

@@ -152,7 +152,10 @@ public:
         // Put terminal in raw mode
         struct termios raw = orig_termios;
         raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-        raw.c_oflag &= ~(OPOST);
+        // This disables output post-processing, requiring explicit \r\n. We
+        // keep it enabled, so that in C++, one can still just use std::endl
+        // for EOL instead of "\r\n".
+        //raw.c_oflag &= ~(OPOST);
         raw.c_cflag |= (CS8);
         raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
         raw.c_cc[VMIN] = 0;
