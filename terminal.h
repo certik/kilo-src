@@ -262,13 +262,7 @@ public:
 
     void write(const std::string& s) const
     {
-#ifdef _WIN32
-        printf(s.c_str());
-#else
-        if (::write(STDOUT_FILENO, s.c_str(), s.size()) != (int)s.size()) {
-            throw std::runtime_error("write() failed");
-        };
-#endif
+        std::cout << s << std::flush;
     }
 
     // Returns true if a character is read, otherwise immediately returns false
