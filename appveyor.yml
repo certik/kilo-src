@@ -1,0 +1,7 @@
+image: Visual Studio 2017
+# List of preinstalled software in the image:
+# https://www.appveyor.com/docs/windows-images-software/
+
+build_script:
+- call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
+- cl /W4 /EHsc w.cpp
