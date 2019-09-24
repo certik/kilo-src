@@ -164,6 +164,8 @@ enum Key {
 class Terminal {
 private:
 #ifdef _WIN32
+    HANDLE hout;
+    HANDLE hin;
 #else
     struct termios orig_termios;
 #endif
@@ -174,6 +176,14 @@ public:
         : restore_screen{ false }
     {
 #ifdef _WIN32
+        hout = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (hout == INVALID_HANDLE_VALUE) {
+            throw std::runtime_error("GetStdHandle(STD_OUTPUT_HANDLE) failed");
+        }
+        hin = GetStdHandle(STD_INPUT_HANDLE);
+        if (hin == INVALID_HANDLE_VALUE) {
+            throw std::runtime_error("GetStdHandle(STD_INPUT_HANDLE) failed");
+        }
 #else
         if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) {
             throw std::runtime_error("tcgetattr() failed");
@@ -435,7 +445,6 @@ public:
     void get_term_size(int& rows, int& cols) const
     {
 #ifdef _WIN32
-        HANDLE hout = GetStdHandle(STD_OUTPUT_HANDLE);
         CONSOLE_SCREEN_BUFFER_INFO inf;
         GetConsoleScreenBufferInfo(hout, &inf);
         cols = inf.dwSize.X;
