@@ -269,16 +269,14 @@ public:
     bool read_raw(char* s) const
     {
 #ifdef _WIN32
-        INPUT_RECORD buf[1];
+        char buf[1];
         DWORD nread;
-        if (!ReadConsoleInput(hin, buf, 1, &nread)) {
-            throw std::runtime_error("ReadConsoleInput() failed");
+        if (!ReadFile(hin, buf, 1, &nread, nullptr)) {
+            throw std::runtime_error("ReadFile() failed");
         }
-        if (nread == 1 && buf[0].EventType == KEY_EVENT) {
-            if (buf[0].Event.KeyEvent.bKeyDown) {
-                *s = 'O';
-                return true;
-            }
+        if (nread == 1) {
+            *s = buf[0];
+            return true;
         }
         return false;
 #else
