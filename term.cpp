@@ -899,6 +899,7 @@ int main(int argc, char *argv[]) {
   // correct state.
   try {
       Terminal term;
+      term.save_screen();
       initEditor(term);
       if (argc >= 2) {
         editorOpen(argv[1]);
